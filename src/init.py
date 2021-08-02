@@ -1,7 +1,8 @@
 import sys
-from logs.logger import log
-from utils import check_internet , get_public_ip
+
 import bot
+from logs.logger import log
+from utils import check_internet, get_public_ip
 
 if __name__ == "__main__":
     if check_internet() is True:

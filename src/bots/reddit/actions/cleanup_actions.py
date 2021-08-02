@@ -1,87 +1,83 @@
-import praw
-import requests
-from apis import pushshift_api, reddit_api
-from config import reddit_config
-from utils import chance
-from logs.logger import log
+import os
+import re
 import sys
 
+import requests
+from apis import reddit_api
+from libs.timezone_converter import TimezoneConverter
+from logs.logger import log
+from utils import chance
+
+
 class Cleanup():
-  def __init__(self):
-    self.psapi = pushshift_api
-    self.rapi = reddit_api
-    self.username = None
+    def __init__(self):
+        self.rapi = reddit_api
+        self.username = None
 
-  def init(self):
-    self.me = self.rapi.user.me
-    self.username = self.me().name
+    def init(self):
+        self.me = self.rapi.user.me
+        self.username = self.me().name
 
-  def shadow_check(self, roll=1):
-    if chance(roll):
-      log.info("performing a shadowban check")
-      response = requests.get(f"https://www.reddit.com/user/{self.username}/about.json",  headers = {'User-agent': f"hiiii its {self.username}"}).json()
-      if "error" in response:
-        if response["error"] == 404:
-          log.info(f"account {self.username} is shadowbanned. poor bot :( shutting down the script...")
-          sys.exit()
+    def timezoneConvert(self):
+        bot_keyword = "!TimezoneConverter"
+        subreddit = self.rapi.subreddit('all')
+        error_reply = "I couldn't convert your comment. If you believe this is a problem, please contact my maker."
+        signature = "\n\n_____" \
+                    "\n\n^Hi ^I'm ^a ^timezone ^converter ^bot, ^for ^more ^info, ^issues ^or ^suggestions [^click ^here](http://www.github.com/)"
+
+        if not os.path.isfile("./comments_replied_to.txt"):
+            comments_replied_to = []
         else:
-          log.info(response)
-      else:
-        log.info(f"{self.username} is not shadowbanned! We think..")
+            # Read the file into a list and remove any empty values
+            with open("./comments_replied_to.txt", "r") as f:
+                comments_replied_to = f.read()
+                comments_replied_to = comments_replied_to.split("\n")
+                comments_replied_to = list(filter(None, comments_replied_to))
 
-  def remove_low_scores(self, roll=1):
-    comment_count = 0
-    post_count = 0
-    if chance(roll):
-      log.info("checking for low score content to remove")
-      for i in self.rapi.redditor(self.username).new(limit=500):
-        if i.score <= reddit_config.CONFIG["reddit_low_score_threshold"]:
-          if isinstance(i, praw.models.Comment):
-            log.info(f"deleting comment(id={i.id}, body={i.body}, score={i.score}, subreddit={i.subreddit_name_prefixed}|{i.subreddit_id})")
-            try:
-              i.delete()
-            except Exception as e:
-              log.info(f"unable to delete comment(id={i.id}), skip...\n{e.message}")
-            comment_count += 1
-          else:
-            log.info(f"deleting post(id={i.id}, score={i.score}, subreddit={i.subreddit_name_prefixed}|{i.subreddit_id})")
-            try:
-              i.delete()
-            except Exception as e:
-              log.info(f"unable to delete post(id={i.id}), skip...\n{e.message}")
-            post_count += 1
-            
-          log.info(f'removed {comment_count + post_count} item(s). removed {comment_count} comment(s), {post_count} post(s) with less than {reddit_config.CONFIG["reddit_low_score_threshold"]} score')
-      
-      # GOOD BOT
-      if (comment_count + post_count) == 0:
-        log.info("no low score content to clean up. I'm a good bot! :^)")
+        # Open stream of comments
+        for comment in subreddit.stream.comments():
 
-  def karma_limit(self):
-    # current karma limit
-    ckl = reddit_config.CONFIG["reddit_comment_karma_limit"]
-    # current post karma
-    cck = self.me().comment_karma
-    # post karma limit
-    pkl = reddit_config.CONFIG["reddit_post_karma_limit"]
-    # current post karma
-    cpk = self.me().link_karma
+            # If we haven't replied to this comment before
+            if comment.id not in comments_replied_to:
 
-    if ckl:
-      if ckl < cck:
-        log.info(f"Comment karma limit ({ckl}) exceeded! Your current comment karma: {cck}. Shutting down the script.")
-        sys.exit()
-      else:
-        log.info(f"Comment karma limit ({ckl}) not reached. Current comment karma: {cck}")
-        return
-    
-    if pkl:
-      if pkl < cpk:
-        log.info(f"Post karma limit ({pkl}) exceeded! Your current post karma: {cpk}. Shutting down the script.")
-        sys.exit()
-      else:
-        log.info(f"Post karma limit ({pkl}) not reached. Current post karma: {cpk}")
-        return
+                # Do a case insensitive search
+                if re.search(bot_keyword, comment.body, re.IGNORECASE):
+                    comment_body = comment.body.replace(bot_keyword, '')
 
-    log.info(f"No limits - ignoring.")
+                    try:
+                        # Try to parse comment's date
+                        tzConverter = TimezoneConverter(comment_body)
+                        converted_date = tzConverter.convertDate()
+                        converted_timezone_name = tzConverter.converted_tz_name
 
+                        if converted_date:
+                            comment_reply = f'{converted_date.strftime("%m/%d %H:%M")}  {converted_timezone_name}'
+                        else:
+                            comment_reply = error_reply
+                        comment.reply(comment_reply + signature)
+                    except Exception as e:
+                        comment.reply(error_reply + signature)
+                        log.error(f'{comment.body} - {str(e)}')
+                        pass
+
+                    # Store the current id into our list
+                    comments_replied_to.append(comment.id)
+
+            # Write our updated list back to the file
+            with open("./comments_replied_to.txt", "w") as f:
+                for comment_id in comments_replied_to:
+                    f.write(comment_id + "\n")
+
+    def shadow_check(self, roll=1):
+        if chance(roll):
+            log.info("performing a shadowban check")
+            response = requests.get(f"https://www.reddit.com/user/{self.username}/about.json",
+                                    headers={'User-agent': f"hiiii its {self.username}"}).json()
+            if "error" in response:
+                if response["error"] == 404:
+                    log.info(f"account {self.username} is shadowbanned. poor bot :( shutting down the script...")
+                    sys.exit()
+                else:
+                    log.info(response)
+            else:
+                log.info(f"{self.username} is not shadowbanned! We think..")

@@ -1,36 +1,39 @@
-import logging
 import json
+import logging
 from logging.handlers import RotatingFileHandler
 
+
 def log_json(tojson: object) -> str:
-  return json.dumps(tojson, indent=2, sort_keys=True)
+    return json.dumps(tojson, indent=2, sort_keys=True)
+
 
 class NewLineFileHandler(RotatingFileHandler):
-  """Handler that controls the writing of the newline character"""
+    """Handler that controls the writing of the newline character"""
 
-  special_code = '[!n]'
+    special_code = '[!n]'
 
-  def emit(self, record) -> None:
+    def emit(self, record) -> None:
 
-    if self.special_code in record.msg:
-      record.msg = record.msg.replace( self.special_code, '' )
-      self.terminator = ''
-    else:
-      self.terminator = '\n'
+        if self.special_code in record.msg:
+            record.msg = record.msg.replace(self.special_code, '')
+            self.terminator = ''
+        else:
+            self.terminator = '\n'
 
-    return super().emit(record)
+        return super().emit(record)
+
 
 class NewLineStreamHandler(logging.StreamHandler):
-  """Handler that controls the writing of the newline character"""
+    """Handler that controls the writing of the newline character"""
 
-  special_code = '[!n]'
+    special_code = '[!n]'
 
-  def emit(self, record) -> None:
+    def emit(self, record) -> None:
 
-    if self.special_code in record.msg:
-      record.msg = record.msg.replace( self.special_code, '' )
-      self.terminator = ''
-    else:
-      self.terminator = '\n'
+        if self.special_code in record.msg:
+            record.msg = record.msg.replace(self.special_code, '')
+            self.terminator = ''
+        else:
+            self.terminator = '\n'
 
-    return super().emit(record)
+        return super().emit(record)
