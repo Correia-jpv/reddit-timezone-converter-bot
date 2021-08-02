@@ -23,7 +23,7 @@ class Cleanup():
         subreddit = self.rapi.subreddit('all')
         error_reply = "I couldn't convert your comment. If you believe this is a problem, please contact my maker."
         signature = "\n\n_____" \
-                    "\n\n^Hi ^I'm ^a ^timezone ^converter ^bot, ^for ^more ^info, ^issues ^or ^suggestions [^click ^here](http://www.github.com/)"
+                    "\n\n^Hi ^I'm ^a ^timezone ^converter ^bot, ^for ^more ^info, ^issues ^or ^suggestions [^click ^here](https://github.com/Correia-jpv/reddit-timezone-converter-bot/)"
 
         if not os.path.isfile("./comments_replied_to.txt"):
             comments_replied_to = []
