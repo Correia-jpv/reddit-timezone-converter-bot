@@ -8,10 +8,6 @@ verify_ssl = true
 [packages]
 psaw = "*"
 praw = "*"
-pytest = "*"
 coverage = "*"
-cobe = "*"
-urwide = "*"
 pyfiglet = "*"
-urwid = "*"
 requests = "*"
