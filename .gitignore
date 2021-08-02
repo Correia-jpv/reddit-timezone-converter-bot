@@ -20,3 +20,8 @@ brainss
 config.json
 .envv
 comments_replied_to.txt
+.idea/vcs.xml
+.idea/reddit-timezone-converter-bot.iml
+.idea/modules.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/inspectionProfiles/profiles_settings.xml

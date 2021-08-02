@@ -1,4 +1,4 @@
-$install_help = "Read windows installation guide https://github.com/MrPowerScripts/reddit-karma-farming-bot/blob/master/docs/3-windows.md"
+$install_help = "Read windows installation guide https://github.com/Correia-jpv/reddit-timezone-converter-bot/blob/master/docs/3-windows.md"
 
 if (!(get-command python)) {
   write-host "Python not found"
