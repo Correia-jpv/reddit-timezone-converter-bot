@@ -1,4 +1,4 @@
-FROM python:3.10.0b2
+FROM python:3.13.0a4
 
 COPY . /app
 WORKDIR /app
